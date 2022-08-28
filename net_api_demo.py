@@ -1,53 +1,61 @@
 '''
-Version:1.0.0
+Version:1.0.1
 Author:TAber-W
 Github:https://github.com/TAber-W
 
 注意：若最后返回错误uid，可通过加减时间戳，重启服务器来清除缓存
 或者使用cookie请求（代码还没增加这个功能（下版本更新），您可以尝试自己动手！）
 '''
+from ast import parse
+from http import cookies
 import requests
 import re
 import cv2
 import base64
 import numpy as np
 import datetime
+import urllib.parse
 
 
 global key
 key_status = 0
-
 '''realIP参数，解决460错误'''
-realIP = "?realIP=xxxxxxx"
+realIP = "?realIP="
 
 '''通过opencv编码based64生成图片'''
 def decode_base64_cv_img(base64_data):
+    global cookie_s
     img = base64.b64decode(base64_data)
     img_array = np.fromstring(img, np.uint8)  # 转换np序列
     img_raw = cv2.imdecode(img_array, cv2.IMREAD_COLOR)  # 转换Opencv格式BGR
     img_gray = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)  # 转换灰度图
-    
     while(1):
         cv2.imshow("img bgr", img_raw)
         code = qr_code_check()[2]
+        r = qr_code_check()[3]
         if code == "800":
             cv2.destroyAllWindows()
             print("二维码过期，请重新登陆")
             break
         if code == "803":
             cv2.destroyAllWindows()
+            print(r.text)
+            cookie_s=re.findall(r'"cookie":"(.+?)"}',r.text)[0]
             print("登陆成功")
             break
         if code == "801":
             print("等待扫码")
+         
         if code == "802":
             print("等待授权")
+       
+           
         #print(qr_code_check()[0],code)
         cv2.waitKey(1000)
     
 '''服务器ip和端口，若是本地运行，ip则为localhost或127.0.0.1'''
 def serve_ip():
-    ip = "xxxxxxxx"
+    ip = "http://106.54.191.240:3000"
     return ip
 
 '''利用key_status确保所有函数使用的是一个key，在decode_base64_cv_img
@@ -84,7 +92,7 @@ def get_login_statu():
     get_link = serve_ip()+keywords
     r = requests.get(get_link)
     code = re.findall(r'code":(.+?),"',r.text)[0]
-    print(get_link,r.text)
+    #print(get_link,r.text)
     if code == "200":
         return "logined"
     else:
@@ -93,8 +101,12 @@ def get_login_statu():
 def get_uid():
     if get_login_statu() == "logined":
         keywords = "/user/account"
-        get_link = serve_ip()+keywords
-        r = requests.get(get_link)
+   
+        
+       
+        get_link = serve_ip()+keywords+"?cookie="+cookie_s
+        print(cookie_s, get_link)
+        r = requests.get(get_link,)
         uid = re.findall(r'id":(.+?),"userName":',r.text)[0]
         return uid
     else:
@@ -103,12 +115,13 @@ def get_uid():
 
 '''检查二维码状态'''
 def qr_code_check():
+    
     keywords = "/login/qr/check"
     get_link = serve_ip()+keywords+"?key="+ get_qr_key() +"&"+get_time_update()
     r = requests.get(get_link)
     qr_code_status = re.findall(r'message":"(.+?)","cookie"',r.text)[0]
     code = re.findall(r'code":(.+?),"message"',r.text)[0]
-    return qr_code_status,get_link,code
+    return qr_code_status,get_link,code,r
     
 
 get_qr_img()
