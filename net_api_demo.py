@@ -1,12 +1,14 @@
 '''
-Version:1.0.1
+Version:1.0.2
 Author:TAber-W
 Github:https://github.com/TAber-W
 
 注意：若最后返回错误uid，可通过加减时间戳，重启服务器来清除缓存
-或者使用cookie请求（代码还没增加这个功能（下版本更新），您可以尝试自己动手！）
+
+2022 8 29 
+增加登陆cookie请求，保存cookie，（未加入cookie有效性检查，下版本更新）
 '''
-from ast import parse
+from ast import keyword, parse
 from http import cookies
 import requests
 import re
@@ -15,6 +17,7 @@ import base64
 import numpy as np
 import datetime
 import urllib.parse
+import os
 
 
 global key
@@ -29,6 +32,7 @@ def decode_base64_cv_img(base64_data):
     img_array = np.fromstring(img, np.uint8)  # 转换np序列
     img_raw = cv2.imdecode(img_array, cv2.IMREAD_COLOR)  # 转换Opencv格式BGR
     img_gray = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)  # 转换灰度图
+    path = "/Users/apple/Desktop/netmusic/app/.hyper_music.txt"
     while(1):
         cv2.imshow("img bgr", img_raw)
         code = qr_code_check()[2]
@@ -39,8 +43,10 @@ def decode_base64_cv_img(base64_data):
             break
         if code == "803":
             cv2.destroyAllWindows()
-            print(r.text)
-            cookie_s=re.findall(r'"cookie":"(.+?)"}',r.text)[0]
+            #print(r.text)
+            cookie_s=re.findall(r'"cookie":"(.+?)"}',r)[0]
+            Note=open(path,mode='w')
+            Note.write(cookie_s)
             print("登陆成功")
             break
         if code == "801":
@@ -101,12 +107,8 @@ def get_login_statu():
 def get_uid():
     if get_login_statu() == "logined":
         keywords = "/user/account"
-   
-        
-       
-        get_link = serve_ip()+keywords+"?cookie="+cookie_s
-        print(cookie_s, get_link)
-        r = requests.get(get_link,)
+        get_link = serve_ip()+keywords+"?cookie="+read_cookie_file()
+        r = requests.get(get_link)
         uid = re.findall(r'id":(.+?),"userName":',r.text)[0]
         return uid
     else:
@@ -121,12 +123,60 @@ def qr_code_check():
     r = requests.get(get_link)
     qr_code_status = re.findall(r'message":"(.+?)","cookie"',r.text)[0]
     code = re.findall(r'code":(.+?),"message"',r.text)[0]
-    return qr_code_status,get_link,code,r
+    return qr_code_status,get_link,code,r.text
+
+'''获取首页轮播信息'''
+def get_banner_info():
+    keywords = "/banner?type=0"
+    get_link = serve_ip()+keywords
+    r = requests.get(get_link)
+    info_type = re.findall(r'"typeTitle":"(.+?)","url"',r.text)
+    print(info_type)
+    return info_type
+
+'''获取每日推荐'''
+def get_daily_rec():
+    keywords = "/recommend/songs"
+    get_link = serve_ip()+keywords+"?cookie="+read_cookie_file()
+    r = requests.get(get_link)
+    print(r.text)
+
+
+'''检查是否存在本地cookie'''
+def check_cookie_file():
+    path = "/Users/apple/Desktop/netmusic/app/.hyper_music.txt"
+    a = os.path.exists(path)
+    if a!=True:
+        get_qr_img()
+
+'''从文件读取cookie'''
+def read_cookie_file():
+    path = "/Users/apple/Desktop/netmusic/app/.hyper_music.txt"
+    with open(path, "r", encoding='utf-8') as f:  #打开文本
+        data = f.read()   #读取文本
+        #print(data)
+    return data
+
+'''获取用户信息，歌单数量，mv数量等'''
+def get_user_info():
+    keywords = "/user/subcount"
+    get_link = serve_ip()+keywords+"?cookie="+read_cookie_file()
+    r = requests.get(get_link)
+    print(r.text)
+
+'''获取账号信息，头像，签名等'''
+def get_account_info():
+    keywords = "/user/account"
+    get_link = serve_ip()+keywords+"?cookie="+read_cookie_file()
+    r = requests.get(get_link)
+    print(r.text)
+
     
 
-get_qr_img()
-print (get_uid())
 
-
+#check_cookie_file()
+#print (get_uid())
+#get_daily_rec()
+get_account_info()
 
 
