@@ -1,9 +1,9 @@
 
 # <div align='center'> <font>netease_login_demo</font> </div>
 <div align='center'> 
-<img src="https://img.shields.io/badge/Version-V1.0.0-red"/>
+<img src="https://img.shields.io/badge/Version-V1.0.2-red"/>
 <img src="https://img.shields.io/badge/Language-Python-blue"/>
-<img src="https://img.shields.io/badge/Commit-20220826-yellowgreen"/>
+<img src="https://img.shields.io/badge/Commit-20220830-yellowgreen"/>
 </div>
 <br>
 基于Binaryify / NeteaseCloudMusicApi的登陆demo
